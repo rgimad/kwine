@@ -67,7 +67,7 @@ uint32_t kwine_get_image_base(void *raw) // VA of image base
     return (void*)(nt->OptionalHeader.ImageBase);
 }
 
-PIMAGE_SECTION_HEADER kwine_get_section_containing_rva(void *raw, uint32_t rva)
+PIMAGE_SECTION_HEADER kwine_get_section_containing_rva(void *raw, uint32_t rva) // returns raw address of section
 {
 	PIMAGE_DOS_HEADER dos;
     PIMAGE_NT_HEADERS32 nt;
@@ -95,6 +95,43 @@ uint32_t kwine_rva_to_raw(void *raw, uint32_t rva) // RVA to RAW address
 		return rva; // if section not found then raw addr is equal to rva
 	// otherwise calculate raw adderess (raw means from the beginning of the file)
 	return sect_hdr_ptr->PointerToRawData + (rva - sect_hdr_ptr->VirtualAddress);
+}
+
+void kwine_print_directory_table(void *raw_img)
+{
+	PIMAGE_DOS_HEADER dos;
+    PIMAGE_NT_HEADERS32 nt;
+    dos = (PIMAGE_DOS_HEADER)raw_img;
+    nt = (PIMAGE_NT_HEADERS32)((uint32_t)dos + (uint32_t)dos->e_lfanew);
+
+    IMAGE_DATA_DIRECTORY* data_dir_ptr = nt->OptionalHeader.DataDirectory;
+	//printf("%x %x\n", (pDataDir-1)->VirtualAddress, (pDataDir-1)->Size);
+	printf("N\tVirtaddr\tSize\tRawaddr\n");
+	for (UINT i = 0; i < IMAGE_NUMBEROF_DIRECTORY_ENTRIES; i++, data_dir_ptr++) {
+    	//if (pDataDir->Size != 0) {
+    	ULONG nFilePtr = (ULONG)(ULONG_PTR)kwine_rva_to_raw(raw_img, data_dir_ptr->VirtualAddress);
+    	//cout << dec << i << ":\t" << hex << pDataDir->VirtualAddress << '\t' << pDataDir->Size << '\t' << nFilePtr << endl;
+    	printf("%8d:\t0x%08x\t0x%08x\t0x%08x\n", i, data_dir_ptr->VirtualAddress, data_dir_ptr->Size, nFilePtr);
+    	//}
+  	}
+}
+
+void kwine_print_section_table(void *raw_img)
+{
+	PIMAGE_DOS_HEADER dos;
+    PIMAGE_NT_HEADERS32 nt;
+    dos = (PIMAGE_DOS_HEADER)raw_img;
+    nt = (PIMAGE_NT_HEADERS32)((uint32_t)dos + (uint32_t)dos->e_lfanew);
+
+    char section_name[9] = {0};
+    IMAGE_SECTION_HEADER* cur_sect_ptr = IMAGE_FIRST_SECTION(nt);
+    int i;
+    printf("N\tName\tVirtsize\tVirtaddr\tRawsize\tRawaddr\n");
+	for (i = 0; i < nt->FileHeader.NumberOfSections; i++, cur_sect_ptr++)
+	{
+		memcpy(section_name, cur_sect_ptr->Name, 8);
+		printf("%8d:\t%s\t0x%08x\t0x%08x\t0x%08x\t0x%08x\n", i, section_name, cur_sect_ptr->Misc.VirtualSize, cur_sect_ptr->VirtualAddress, cur_sect_ptr->SizeOfRawData, cur_sect_ptr->PointerToRawData);
+	}
 }
 
 
@@ -134,20 +171,9 @@ int main(int argc, char *argv[])
     printf("VA of image base = 0x%x\n", (uint32_t)kwine_get_image_base(raw_img));
     //printf("%d", IMAGE_NUMBEROF_DIRECTORY_ENTRIES);
 
-    PIMAGE_DOS_HEADER dos;
-    PIMAGE_NT_HEADERS32 nt;
-    dos = (PIMAGE_DOS_HEADER)raw_img;
-    nt = (PIMAGE_NT_HEADERS32)((uint32_t)dos + (uint32_t)dos->e_lfanew);
-
-    IMAGE_DATA_DIRECTORY* data_dir_ptr = nt->OptionalHeader.DataDirectory;
-	//printf("%x %x\n", (pDataDir-1)->VirtualAddress, (pDataDir-1)->Size);
-	for (UINT i = 0; i < IMAGE_NUMBEROF_DIRECTORY_ENTRIES; i++, data_dir_ptr++) {
-    	//if (pDataDir->Size != 0) {
-    	ULONG nFilePtr = (ULONG)(ULONG_PTR)kwine_rva_to_raw(raw_img, data_dir_ptr->VirtualAddress);
-    	//cout << dec << i << ":\t" << hex << pDataDir->VirtualAddress << '\t' << pDataDir->Size << '\t' << nFilePtr << endl;
-    	printf("%8d:\t0x%08x\t0x%08x\t0x%08x\n", i, data_dir_ptr->VirtualAddress, data_dir_ptr->Size, nFilePtr);
-    	//}
-  	}
+    kwine_print_directory_table(raw_img);
+    printf("\n\n");
+    kwine_print_section_table(raw_img);
 
 
 	return 0;
