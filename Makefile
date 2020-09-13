@@ -12,17 +12,16 @@ LDFLAGS=-call_shared -nostdlib --subsystem console -T $(APP_DYNAMIC_LDS) --image
 
 BASH=ubuntu1804 run
 
-all: kwine_main
+all: kwine
 	ubuntu1804 run "mcopy -D o -i kolibri.img kwine ::kwine/kwine"
 	qemu-system-x86_64 -fda kolibri.img -m 256 -usb -usbdevice tablet
 
-#libs:
-    #
-
-kwine_main:
-	$(CC) $(CCFLAGS) kwine.c -o kwine.o
+kwine: kwine.o
 	$(LD) kwine.o -o $(KWINE_MAIN_TARGET) $(LDFLAGS)
 	$(OBJCOPY) $(KWINE_MAIN_TARGET) -O binary
+
+kwine.o: kwine.c
+	$(CC) $(CCFLAGS) kwine.c -o kwine.o
 
 clean:
 	del *.o
