@@ -207,6 +207,10 @@ BOOL kwine_load_exe_image(void *raw_img)
 
     kwine_load_sections(raw_img);
 
+    uint32_t esp;
+    asm( "mov %%esp, %0" : "=r" ( esp ));
+    printf("esp = %x\n", esp);
+
     ((void(*)(void))(nt->OptionalHeader.ImageBase + nt->OptionalHeader.AddressOfEntryPoint))();
     return TRUE;
 }
