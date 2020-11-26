@@ -36,6 +36,16 @@ static inline int get_used_memory()
     return *(int*)(buf + 0x1A);
 }
 
+static inline int sys_virtual_alloc(void *base, size_t size)
+{
+    int eax;
+    __asm__ __volatile__ (
+    "int $0x40"
+    :"=a"(eax)
+    :"a"(81),"b"(base),"c"(size));
+    return eax;
+}
+
 
 int kwine_validate_pe(void *raw, size_t raw_size, int is_exec) // is_exec = 1 if we check if exe is correct, else check as dll
 {
@@ -188,10 +198,12 @@ BOOL kwine_load_exe_image(void *raw_img)
     }
 
     // realloc 
-    int x = /*get_used_memory() + */nt->OptionalHeader.ImageBase + nt->OptionalHeader.SizeOfImage;
-    void *tmp = user_alloc(x);
-    printf("x = %d (bytes) tmp = %d (decimal)\n", x, (int)tmp);
-    printf("used memory = %d bytes\n------\n", get_used_memory());
+    //int x = /*get_used_memory() + */nt->OptionalHeader.ImageBase + nt->OptionalHeader.SizeOfImage;
+    //void *tmp = user_alloc(x);
+    //printf("x = %d (bytes) tmp = %d (decimal)\n", x, (int)tmp);
+    //printf("used memory = %d bytes\n------\n", get_used_memory());
+
+    sys_virtual_alloc((void*)nt->OptionalHeader.ImageBase, (size_t)nt->OptionalHeader.SizeOfImage);
 
     kwine_load_sections(raw_img);
 
