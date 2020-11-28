@@ -36,6 +36,15 @@ static inline int get_used_memory()
     return *(int*)(buf + 0x1A);
 }
 
+static inline void set_default_event_mask()
+{
+    int eax;
+    __asm__ __volatile__ (
+    "int $0x40"
+    :"=a"(eax)
+    :"a"(40),"b"(7));
+}
+
 static inline int sys_virtual_alloc(void *base, size_t size)
 {
     int eax;
@@ -217,6 +226,7 @@ BOOL kwine_load_exe_image(void *raw_img)
 
 int main(int argc, char *argv[])
 {
+    set_default_event_mask();
 	if (argc <= 1)
 	{
 		printf("[-] error: no exe file specified.\n Usage: kwine <file>\n");
