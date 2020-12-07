@@ -14,6 +14,8 @@ BASH=ubuntu1804 run
 
 all: kwine
 	ubuntu1804 run "mcopy -D o -i kolibri.img kwine ::kwine/kwine"
+	ubuntu1804 run "mdeltree -i kolibri.img ::kwine/samples/*"
+	ubuntu1804 run "mcopy -D o -i kolibri.img samples/* ::kwine/samples"
 	qemu-system-x86_64 -fda kolibri.img -m 256 -usb -usbdevice tablet
 
 kwine: kwine.o
