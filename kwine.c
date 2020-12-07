@@ -105,52 +105,52 @@ uint32_t kwine_get_image_base(void *raw) { // VA of image base
 }
 
 PIMAGE_SECTION_HEADER kwine_get_section_containing_rva(void *raw, uint32_t rva) { // returns raw address of section
-	PIMAGE_DOS_HEADER dos;
+    PIMAGE_DOS_HEADER dos;
     PIMAGE_NT_HEADERS32 nt;
     dos = (PIMAGE_DOS_HEADER)raw;
     nt = (PIMAGE_NT_HEADERS32)((uint32_t)dos + (uint32_t)dos->e_lfanew);
     IMAGE_SECTION_HEADER* cur_sect_ptr = IMAGE_FIRST_SECTION(nt);
     int i;
-	for (i = 0; i < nt->FileHeader.NumberOfSections; i++, cur_sect_ptr++) {
-		// if RVA is located within section, then return pointer to its header
-    	if (rva >= cur_sect_ptr->VirtualAddress && rva < cur_sect_ptr->VirtualAddress + cur_sect_ptr->Misc.VirtualSize)
-			return cur_sect_ptr;
-	}
-	return NULL; // section not found
+    for (i = 0; i < nt->FileHeader.NumberOfSections; i++, cur_sect_ptr++) {
+        // if RVA is located within section, then return pointer to its header
+        if (rva >= cur_sect_ptr->VirtualAddress && rva < cur_sect_ptr->VirtualAddress + cur_sect_ptr->Misc.VirtualSize)
+            return cur_sect_ptr;
+    }
+    return NULL; // section not found
 }
 
 uint32_t kwine_rva_to_raw(void *raw, uint32_t rva) { // RVA to RAW address
-	PIMAGE_DOS_HEADER dos;
+    PIMAGE_DOS_HEADER dos;
     PIMAGE_NT_HEADERS32 nt;
     dos = (PIMAGE_DOS_HEADER)raw;
     nt = (PIMAGE_NT_HEADERS32)((uint32_t)dos + (uint32_t)dos->e_lfanew);
     IMAGE_SECTION_HEADER* sect_hdr_ptr = kwine_get_section_containing_rva(raw, rva);
-	if (sect_hdr_ptr == NULL) 
-		return rva; // if section not found then raw addr is equal to rva
-	// otherwise calculate raw adderess (raw means from the beginning of the file)
-	return sect_hdr_ptr->PointerToRawData + (rva - sect_hdr_ptr->VirtualAddress);
+    if (sect_hdr_ptr == NULL) 
+        return rva; // if section not found then raw addr is equal to rva
+    // otherwise calculate raw adderess (raw means from the beginning of the file)
+    return sect_hdr_ptr->PointerToRawData + (rva - sect_hdr_ptr->VirtualAddress);
 }
 
 void kwine_print_directory_table(void *raw_img) {
-	PIMAGE_DOS_HEADER dos;
+    PIMAGE_DOS_HEADER dos;
     PIMAGE_NT_HEADERS32 nt;
     dos = (PIMAGE_DOS_HEADER)raw_img;
     nt = (PIMAGE_NT_HEADERS32)((uint32_t)dos + (uint32_t)dos->e_lfanew);
 
     IMAGE_DATA_DIRECTORY* data_dir_ptr = nt->OptionalHeader.DataDirectory;
-	//printf("%x %x\n", (pDataDir-1)->VirtualAddress, (pDataDir-1)->Size);
-	printf("N\tVirtaddr\tSize\tRawaddr\n");
-	for (UINT i = 0; i < IMAGE_NUMBEROF_DIRECTORY_ENTRIES; i++, data_dir_ptr++) {
-    	//if (pDataDir->Size != 0) {
-    	ULONG nFilePtr = (ULONG)(ULONG_PTR)kwine_rva_to_raw(raw_img, data_dir_ptr->VirtualAddress);
-    	//cout << dec << i << ":\t" << hex << pDataDir->VirtualAddress << '\t' << pDataDir->Size << '\t' << nFilePtr << endl;
-    	printf("%8d:\t0x%08x\t0x%08x\t0x%08x\n", i, (uint32_t)data_dir_ptr->VirtualAddress, (uint32_t)data_dir_ptr->Size, (uint32_t)nFilePtr);
-    	//}
-  	}
+    //printf("%x %x\n", (pDataDir-1)->VirtualAddress, (pDataDir-1)->Size);
+    printf("N\tVirtaddr\tSize\tRawaddr\n");
+    for (UINT i = 0; i < IMAGE_NUMBEROF_DIRECTORY_ENTRIES; i++, data_dir_ptr++) {
+        //if (pDataDir->Size != 0) {
+        ULONG nFilePtr = (ULONG)(ULONG_PTR)kwine_rva_to_raw(raw_img, data_dir_ptr->VirtualAddress);
+        //cout << dec << i << ":\t" << hex << pDataDir->VirtualAddress << '\t' << pDataDir->Size << '\t' << nFilePtr << endl;
+        printf("%8d:\t0x%08x\t0x%08x\t0x%08x\n", i, (uint32_t)data_dir_ptr->VirtualAddress, (uint32_t)data_dir_ptr->Size, (uint32_t)nFilePtr);
+        //}
+      }
 }
 
 void kwine_print_section_table(void *raw_img) {
-	PIMAGE_DOS_HEADER dos;
+    PIMAGE_DOS_HEADER dos;
     PIMAGE_NT_HEADERS32 nt;
     dos = (PIMAGE_DOS_HEADER)raw_img;
     nt = (PIMAGE_NT_HEADERS32)((uint32_t)dos + (uint32_t)dos->e_lfanew);
@@ -159,10 +159,10 @@ void kwine_print_section_table(void *raw_img) {
     IMAGE_SECTION_HEADER* cur_sect_ptr = IMAGE_FIRST_SECTION(nt);
     int i;
     printf("N\tName\tVirtsize\tVirtaddr\tRawsize\tRawaddr\n");
-	for (i = 0; i < nt->FileHeader.NumberOfSections; i++, cur_sect_ptr++) {
-		memcpy(section_name, cur_sect_ptr->Name, 8);
-		printf("%8d:\t%s\t0x%08x\t0x%08x\t0x%08x\t0x%08x\n", i, section_name, (uint32_t)cur_sect_ptr->Misc.VirtualSize, (uint32_t)cur_sect_ptr->VirtualAddress, (uint32_t)cur_sect_ptr->SizeOfRawData, (uint32_t)cur_sect_ptr->PointerToRawData);
-	}
+    for (i = 0; i < nt->FileHeader.NumberOfSections; i++, cur_sect_ptr++) {
+        memcpy(section_name, cur_sect_ptr->Name, 8);
+        printf("%8d:\t%s\t0x%08x\t0x%08x\t0x%08x\t0x%08x\n", i, section_name, (uint32_t)cur_sect_ptr->Misc.VirtualSize, (uint32_t)cur_sect_ptr->VirtualAddress, (uint32_t)cur_sect_ptr->SizeOfRawData, (uint32_t)cur_sect_ptr->PointerToRawData);
+    }
 }
 
 void kwine_load_sections(void *raw_img) {
@@ -213,12 +213,12 @@ int main(int argc, char *argv[]) {
 
     printf("%s\n", KWINE_NAME_VERSION);
 
-	if (argc <= 1) {
-		printf("[-] error: no exe file specified.\n Usage: kwine <file>\n");
-		return -1;
-	}
+    if (argc <= 1) {
+        printf("[-] error: no exe file specified.\n Usage: kwine <file>\n");
+        return -1;
+    }
 
-	ufile_t uf;
+    ufile_t uf;
     void *raw_img;
     size_t raw_size;
     void *img_base = NULL;
@@ -233,7 +233,7 @@ int main(int argc, char *argv[]) {
     //printf("used memory = %d bytes\n", get_used_memory());
 
     if(raw_img == NULL) {
-    	printf("[-] error: file %s not found.\n", exe_path);
+        printf("[-] error: file %s not found.\n", exe_path);
         return -1;
     }
 
@@ -254,7 +254,7 @@ int main(int argc, char *argv[]) {
     kwine_load_exe_image(raw_img);
 
 
-	return 0;
+    return 0;
 }
 
 
